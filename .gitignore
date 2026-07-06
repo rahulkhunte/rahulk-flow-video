@@ -212,3 +212,7 @@ checkpoints/
 # cached Moving MNIST tensor (prepped on the A1 Flex, downloaded by Kaggle)
 data/*.npy
 *.npy
+
+# untrained sampler smoke-test outputs (regenerate with sample.py; real
+# results are curated separately)
+assets/sample_untrained_*.gif
