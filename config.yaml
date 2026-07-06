@@ -1,0 +1,37 @@
+# rahulk-flow-video — Flow-Matching Video Training Configuration
+# Flat keys (this repo has one pipeline; no nested `video:` block like rahulk-ddpm).
+
+# ── Data / clip geometry ──────────────────────────────────────────────────────
+frames: 8
+image_size: 64
+channels: 1
+
+# ── Model (DiTVideo — factorized spatial+temporal) ────────────────────────────
+patch_size: 8          # 64/8 -> 8x8 = 64 tokens/frame
+dim: 256               # embed dim
+depth: 8               # spatial+temporal block pairs
+heads: 4
+# ~17.5M params at these settings; fits the T4 with room to spare.
+
+# ── Training ──────────────────────────────────────────────────────────────────
+batch_size: 16         # tune to T4 memory
+lr: 1.0e-4
+grad_clip: 1.0
+# EMA at inference — standard in production diffusion/flow pipelines. 0.9999 is
+# fine here because the real run is 30-50k steps (unlike the short DDPM video
+# runs that needed 0.999 to escape the random-init shadow).
+ema_decay: 0.9999
+max_steps: 50000
+num_workers: 4
+seed: 0
+
+# ── Sampling (Euler ODE) ──────────────────────────────────────────────────────
+sample_steps: 50       # integration steps t: 1 -> 0 at inference
+
+# ── I/O ───────────────────────────────────────────────────────────────────────
+log_every: 100
+save_every: 5000
+checkpoint_dir: checkpoints/     # gitignored — push to HF Hub, not git
+sample_dir: assets/
+data_src: data/MovingMNIST/mnist_test_seq.npy
+data_cache: data/moving_mnist_seqfirst.npy
