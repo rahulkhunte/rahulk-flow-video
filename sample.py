@@ -36,21 +36,40 @@ def build_model(cfg, device):
     ).to(device)
 
 
-def load_ema(model, ckpt_path, device):
+def load_weights(model, ckpt_path, device, weights='ema'):
     """
-    Load EMA weights into `model`. Accepts either a full resume checkpoint
-    (dict with 'ema_state_dict') or a bare EMA state_dict (ema_*.pth). Returns
-    True if weights were loaded, False if we're sampling from a fresh init.
+    Load weights into `model` from a checkpoint. `weights` selects which set:
+      'ema' — the EMA shadow (what final inference uses; smoothest LATE in a run).
+      'raw' — the live training weights (model_state_dict).
+
+    Why 'raw' matters early: with EMA decay 0.9999 the shadow is ~0.9999^step
+    random-init (≈61% at 5k, ≈37% at 10k, ≈5% at 30k), so `ema_*` samples look
+    like noise until ~25-30k while the RAW weights already show structure. Use
+    'raw' to eyeball early/mid training, 'ema' for the final, smoothest samples.
+
+    Accepts a full resume checkpoint (dict with model_/ema_state_dict) or a bare
+    state_dict (ema_*.pth). Returns True if weights loaded, False if untrained.
     """
     if not ckpt_path or not os.path.exists(ckpt_path):
         print(f"⚠️  No checkpoint at '{ckpt_path}' — sampling from UNTRAINED init "
               f"(expect a pure-noise GIF; that is the sampler smoke-test pass).", flush=True)
         return False
     ckpt = torch.load(ckpt_path, map_location=device)
-    state = ckpt['ema_state_dict'] if isinstance(ckpt, dict) and 'ema_state_dict' in ckpt else ckpt
+    if isinstance(ckpt, dict) and ('ema_state_dict' in ckpt or 'model_state_dict' in ckpt):
+        key = 'model_state_dict' if weights == 'raw' else 'ema_state_dict'
+        if key not in ckpt:                      # requested set absent → use what's there
+            key = 'ema_state_dict' if 'ema_state_dict' in ckpt else 'model_state_dict'
+        state, label = ckpt[key], key
+    else:
+        state, label = ckpt, 'bare state_dict'   # ema_*.pth is already just EMA weights
     model.load_state_dict(state)
-    print(f"Loaded EMA weights from {ckpt_path}", flush=True)
+    print(f"Loaded {weights!r} weights ({label}) from {ckpt_path}", flush=True)
     return True
+
+
+def load_ema(model, ckpt_path, device):
+    """Back-compat shim — loads the EMA weights (see load_weights)."""
+    return load_weights(model, ckpt_path, device, weights='ema')
 
 
 def to_frames(clip: torch.Tensor, upscale: int = 128):
@@ -64,7 +83,8 @@ def to_frames(clip: torch.Tensor, upscale: int = 128):
     return frames
 
 
-def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None, device=None):
+def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None, device=None,
+           weights='ema'):
     with open(cfg_path) as f:
         cfg = yaml.safe_load(f)
     # device override lets the eyeball-a-checkpoint path run on CPU in a free
@@ -76,7 +96,7 @@ def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None, devic
     print(f"Device: {device}  |  {n} clips  |  {steps} Euler steps", flush=True)
 
     model     = build_model(cfg, device)
-    trained   = load_ema(model, ckpt, device)
+    trained   = load_weights(model, ckpt, device, weights=weights)
     model.eval()
     scheduler = FlowMatchingScheduler(device=device)
 
@@ -84,7 +104,7 @@ def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None, devic
     x0 = scheduler.sample(model, shape, steps=steps)      # reuse the tested ODE loop
     assert x0.shape == shape, f"round-trip shape broke: {x0.shape} != {shape}"
 
-    tag = 'ema' if trained else 'untrained'
+    tag = weights if trained else 'untrained'
     for i in range(n):
         frames = to_frames(x0[i])
         path = f"{out_dir}/sample_{tag}_{i}.gif"
@@ -103,6 +123,8 @@ if __name__ == '__main__':
     ap.add_argument('--steps', type=int, default=None, help='Euler ODE steps (default: cfg sample_steps)')
     ap.add_argument('--out',   default=None)
     ap.add_argument('--device', default=None, help="force 'cpu' or 'cuda' (default: auto)")
+    ap.add_argument('--weights', default='ema', choices=['ema', 'raw'],
+                    help="'ema' (final, smooth) or 'raw' (leads early; EMA lags ~30k)")
     args = ap.parse_args()
     sample(args.cfg, ckpt=args.ckpt, n=args.n, steps=args.steps, out_dir=args.out,
-           device=args.device)
+           device=args.device, weights=args.weights)
