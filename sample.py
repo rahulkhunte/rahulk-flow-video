@@ -64,10 +64,12 @@ def to_frames(clip: torch.Tensor, upscale: int = 128):
     return frames
 
 
-def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None):
+def sample(cfg_path='config.yaml', ckpt='', n=4, steps=None, out_dir=None, device=None):
     with open(cfg_path) as f:
         cfg = yaml.safe_load(f)
-    device   = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device override lets the eyeball-a-checkpoint path run on CPU in a free
+    # session (no GPU quota, and it sidesteps Kaggle's P100/Pascal torch break).
+    device   = device or ('cuda' if torch.cuda.is_available() else 'cpu')
     steps    = steps if steps is not None else cfg['sample_steps']
     out_dir  = out_dir or cfg['sample_dir']
     os.makedirs(out_dir, exist_ok=True)
@@ -100,5 +102,7 @@ if __name__ == '__main__':
     ap.add_argument('--n',     type=int, default=4)
     ap.add_argument('--steps', type=int, default=None, help='Euler ODE steps (default: cfg sample_steps)')
     ap.add_argument('--out',   default=None)
+    ap.add_argument('--device', default=None, help="force 'cpu' or 'cuda' (default: auto)")
     args = ap.parse_args()
-    sample(args.cfg, ckpt=args.ckpt, n=args.n, steps=args.steps, out_dir=args.out)
+    sample(args.cfg, ckpt=args.ckpt, n=args.n, steps=args.steps, out_dir=args.out,
+           device=args.device)
