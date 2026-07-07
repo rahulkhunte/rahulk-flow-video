@@ -32,6 +32,15 @@ sample_steps: 50       # integration steps t: 1 -> 0 at inference
 log_every: 100
 save_every: 5000
 checkpoint_dir: checkpoints/     # gitignored — push to HF Hub, not git
+
+# ── HF Hub checkpoint sync (survives dropped Kaggle sessions) ──────────────────
+# Every save pushes the LATEST resume_/ema_ (overwritten) so a fresh session can
+# always pull and continue. Permanent milestone snapshots are kept only every
+# hf_push_every steps — not every save — so the repo doesn't fill up. Token comes
+# from the HF_TOKEN env var (Kaggle Secrets on the notebook); never hardcoded.
+# Set hf_repo to '' to disable HF entirely (pure local run).
+hf_repo: rahulkhunte/rahulk-flow-video-ckpts
+hf_push_every: 10000
 sample_dir: assets/
 data_src: data/MovingMNIST/mnist_test_seq.npy
 data_cache: data/moving_mnist_seqfirst.npy
