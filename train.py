@@ -60,8 +60,8 @@ def build_model(cfg, device):
 
 # ── HF Hub checkpoint sync ────────────────────────────────────────────────────
 # Checkpoints (100s of MB) don't belong in git. A dropped Kaggle session must be
-# able to resume, so every save pushes the LATEST resume_/ema_ to a private HF
-# model repo (overwritten each time), plus a PERMANENT milestone snapshot every
+# able to resume, so every save pushes the LATEST resume_/ema_ to an HF model
+# repo (overwritten each time), plus a PERMANENT milestone snapshot every
 # `hf_push_every` steps. On startup we pull resume_latest.pth and continue.
 # huggingface_hub is imported lazily so the CPU box / --overfit runs never need it.
 
@@ -79,7 +79,8 @@ def _hf_settings(cfg):
 
 
 def _hf_ensure_repo(repo, token):
-    """Create the private repo if absent. Returns True if HF is usable."""
+    """Create the repo if absent (private by default — safe for a fresh fork;
+    this project's repo was later flipped public). Returns True if HF is usable."""
     try:
         from huggingface_hub import create_repo          # lazy import
         create_repo(repo, token=token, repo_type='model', private=True, exist_ok=True)

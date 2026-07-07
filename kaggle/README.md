@@ -42,6 +42,8 @@ yields P100, and `kaggle kernels push` *resets* any T4 you picked. So:
 2. **Real run** — set `SMOKE = False`, keep T4, Save & Run All. If the 12h window
    ends it before 50k, just Save & Run All again — it resumes from HF automatically.
 
-Checkpoints land in the private HF repo `rahulkhunte/rahulk-flow-video-ckpts`
-(auto-created on first push): `resume_latest.pth` / `ema_latest.pth` overwritten
-each save, plus permanent `*_step_N.pth` milestones every `hf_push_every` steps.
+Checkpoints land in the **public** HF repo
+[`rahulkhunte/rahulk-flow-video-ckpts`](https://huggingface.co/rahulkhunte/rahulk-flow-video-ckpts)
+(auto-created private on first push, then flipped public in repo settings):
+`resume_latest.pth` / `ema_latest.pth` overwritten each save, plus permanent
+`*_step_N.pth` milestones every `hf_push_every` steps.
