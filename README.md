@@ -123,7 +123,7 @@ With no checkpoint, `sample.py` emits pure-noise GIFs — that's the sampler smo
 The infra is built so a dropped Kaggle session is a non-event:
 
 - The prepped Moving MNIST cache is attached as a **private Kaggle Dataset** — sessions start training immediately instead of re-downloading/re-transposing.
-- `train.py` **syncs checkpoints to HF Hub** on every save (`resume_latest.pth`/`ema_latest.pth` overwritten, permanent `*_step_N.pth` milestones every 10k) and **auto-resumes** from the latest HF checkpoint on startup. Weights live at [`rk8055/rahulk-flow-video-ckpts`](https://huggingface.co/rk8055/rahulk-flow-video-ckpts) on HF Hub — no `.pth` is ever committed to git. Token via the `HF_TOKEN` env var (Kaggle Secrets on the notebook), never hardcoded.
+- `train.py` **syncs checkpoints to HF Hub** on every save (`resume_latest.pth`/`ema_latest.pth` overwritten, permanent `*_step_N.pth` milestones every 10k) and **auto-resumes** from the latest HF checkpoint on startup. Weights live at [`rahulkhunte/rahulk-flow-video-ckpts`](https://huggingface.co/rahulkhunte/rahulk-flow-video-ckpts) on HF Hub — no `.pth` is ever committed to git. Token via the `HF_TOKEN` env var (Kaggle Secrets on the notebook), never hardcoded.
 - The 50k run happened to finish inside one session; if it hadn't, re-running the notebook resumes from HF automatically. See [`kaggle/README.md`](kaggle/README.md) for the T4-is-UI-only gotcha and the full run procedure.
 
 ## Next steps — known levers
