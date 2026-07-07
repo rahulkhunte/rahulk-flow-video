@@ -24,11 +24,23 @@ kaggle kernels push -p kaggle/
 This creates/updates `rahulkhunte/rahulk-flow-video-train` with GPU + Internet on
 and the dataset attached. Open it on kaggle.com and **Run All**.
 
+## ⚠️ GPU MUST be T4 — and that is UI-only
+Kaggle's PyTorch dropped Pascal support, so the **P100** it hands out by default
+crashes (`sm_60` unsupported). You must use **GPU T4 x2**. There is **no API /
+metadata field for accelerator type** — `enable_gpu` is just a boolean that
+yields P100, and `kaggle kernels push` *resets* any T4 you picked. So:
+
+- **`kaggle kernels push` is only for editing the notebook.** Every CLI-triggered
+  run lands on P100 and fails the GPU check (by design — fail fast).
+- **Real runs must be launched from the web UI**, where T4 is selected:
+  editor ▸ **Settings ▸ Accelerator ▸ `GPU T4 x2`**, then **Save Version ▸
+  Save & Run All (Commit)** (batch; survives disconnects and the 12h cap).
+
 ## Run order
-1. Keep `SMOKE = True` (cell 0) → Run All. 200 steps confirm GPU + data + HF push
-   + HF pull/resume round-trip.
-2. Flip `SMOKE = False` → Run All for the real 50k-step run. If the 12h window
-   ends it early, just Run All again — it resumes from HF automatically.
+1. **Smoke** — in the UI with T4 selected, keep `SMOKE = True` (cell 0) ▸ Save &
+   Run All. 200 steps confirm GPU + data + HF push + HF pull/resume round-trip.
+2. **Real run** — set `SMOKE = False`, keep T4, Save & Run All. If the 12h window
+   ends it before 50k, just Save & Run All again — it resumes from HF automatically.
 
 Checkpoints land in the private HF repo `rahulkhunte/rahulk-flow-video-ckpts`
 (auto-created on first push): `resume_latest.pth` / `ema_latest.pth` overwritten
